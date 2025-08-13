@@ -1,0 +1,42 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Daily at 5am SAST
+  push:
+    branches: [ main ]
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'SuperAGI'
+        format: 'HTML'
+        fail_on_cvss: 7
+
+  code-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run Bandit Security Scan
+      uses: py-actions/bandit@v2
+      with:
+        args: -r backend/ -x tests
+
+  container-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Docker image
+      run: docker build -t superagi .
+    - name: Scan Docker image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'superagi'
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
