@@ -1,0 +1,48 @@
+name: Performance Optimization
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 4am SAST
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+    - name: Audit and fix
+      run: |
+        cd frontend
+        npm audit fix
+        npm run build -- --profile
+        npm run analyze
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Run Profiler
+      run: |
+        python -m cProfile -o profile.stats backend/app.py --profile
+        python backend/core/performance.py --analyze profile.stats
+
+  model-tuning:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Retrain Models
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      run: |
+        python backend/ai/model_training.py \
+          --retrain \
+          --dataset latest \
+          --target za_conversion
