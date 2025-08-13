@@ -1,0 +1,45 @@
+name: Self-Healing System
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check System Health
+      env:
+        PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" $PRODUCTION_URL)
+        if [ "$response" != "200" ]; then
+          echo "status=$response" >> $GITHUB_ENV
+          exit 1
+        fi
+
+    - name: Trigger Healing Process
+      if: ${{ failure() }}
+      run: |
+        python backend/core/system_monitor.py --heal --status ${{ env.status }}
+
+  db-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run Database Optimization
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        python backend/database/maintenance.py --optimize --backup
+
+  content-refresh:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Generate New Content
+      run: |
+        python backend/sub_agis/marketing/content_creator.py \
+          --refresh --market za
