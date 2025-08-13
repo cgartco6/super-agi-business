@@ -1,0 +1,30 @@
+name: Localization Updates
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'  # Every Monday at 7am SAST
+  workflow_dispatch:
+
+jobs:
+  update-content:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Update SA-Specific Content
+      run: |
+        python backend/sub_agis/marketing/content_creator.py \
+          --localize za \
+          --languages en,af,zu \
+          --update-all
+
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Machine Translation
+      run: |
+        python backend/sub_agis/marketing/content_creator.py \
+          --translate \
+          --source en \
+          --target af,zu \
+          --content-type all
