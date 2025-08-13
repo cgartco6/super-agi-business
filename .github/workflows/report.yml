@@ -1,0 +1,52 @@
+name: Marketing Performance Report
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'  # Weekdays at 11am SAST
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Generate Report
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        python backend/sub_agis/marketing/reporting.py \
+          --period daily \
+          --output html,slack \
+          --market za
+
+    - name: Upload Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: marketing-report
+        path: reports/daily-marketing-report.html
+
+  send-email:
+    needs: generate-report
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download Report
+      uses: actions/download-artifact@v3
+      with:
+        name: marketing-report
+    - name: Send Email
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USER }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: Daily Marketing Report - SA Campaign
+        body: file://reports/daily-marketing-report.html
+        to: ${{ secrets.REPORT_RECIPIENTS }}
+        content_type: text/html
