@@ -1,0 +1,58 @@
+name: Marketing Automation
+
+on:
+  schedule:
+    - cron: '0 8,12,18 * * *'  # 10am, 2pm, 8pm SAST
+  workflow_dispatch:
+
+jobs:
+  social-media:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Run Social Media Campaign
+      env:
+        FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+        TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+        TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+        INSTAGRAM_USER: ${{ secrets.INSTAGRAM_USER }}
+        INSTAGRAM_PASS: ${{ secrets.INSTAGRAM_PASS }}
+      run: |
+        python backend/sub_agis/marketing/promomaster_free.py \
+          --action social_media_blitz \
+          --market za
+
+  influencer-outreach:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Run Influencer Outreach
+      run: |
+        python backend/sub_agis/marketing/promomaster_free.py \
+          --action influencer_outreach \
+          --batch 20
+
+  performance-monitor:
+    runs-on: ubuntu-latest
+    needs: [social-media, influencer-outreach]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Analyze Results
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        python backend/sub_agis/marketing/promomaster_free.py \
+          --action analyze_performance \
+          --adjust-campaign
