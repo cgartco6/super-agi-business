@@ -1,0 +1,29 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Daily at 3am SAST
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Backup Database
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        S3_BUCKET: ${{ secrets.S3_BACKUP_BUCKET }}
+      run: |
+        python backend/database/backup.py \
+          --encrypt \
+          --compress \
+          --upload s3://$S3_BUCKET/backups/
+        
+    - name: Verify Backup
+      run: |
+        python backend/database/backup.py \
+          --verify-latest \
+          --max-age 24
