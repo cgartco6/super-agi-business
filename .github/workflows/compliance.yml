@@ -1,0 +1,41 @@
+name: Compliance Check
+
+on:
+  schedule:
+    - cron: '0 4 1 * *'  # First of month at 6am SAST
+  workflow_dispatch:
+
+jobs:
+  popia-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run POPIA Compliance Scan
+      run: |
+        python backend/security/compliance.py \
+          --regulation popia \
+          --scan all \
+          --report html
+
+    - name: Upload Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: popia-compliance-report
+        path: compliance/popia-report.html
+
+  gdpr-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run GDPR Compliance Scan
+      run: |
+        python backend/security/compliance.py \
+          --regulation gdpr \
+          --scan all \
+          --report html
+
+    - name: Upload Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: gdpr-compliance-report
+        path: compliance/gdpr-report.html
